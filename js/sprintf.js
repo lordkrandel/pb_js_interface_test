@@ -178,9 +178,3 @@ var sprintf = (function() {
 	return str_format;
 })();
 
-String.prototype.exor = function(a){
-    var s = typeof(a);
-    s += a.is_test;
-    return s
-};
-
