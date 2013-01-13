@@ -1,13 +1,15 @@
 lordkrandel/js_test
 =======================
 
-A Powerbuilder -> OLE -> Javascript interface.  
-Gives free access to JScript, which comes with batteries included:
-1.  String functions
-1.  Regexp
-1.  Sprintf
-1.  JSON
+A **Powerbuilder -> Javascript** interface. (through OLE )  
 
+Gives free access to JScript.  
+Comes with batteries included:
+
+1.  String functions
+2.  Regexp
+3.  Sprintf
+4.  JSON
 
 
 License: Modified 3-clauses BSD
