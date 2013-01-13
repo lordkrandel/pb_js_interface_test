@@ -15,7 +15,7 @@ Comes with batteries included:
 License: Modified 3-clauses BSD
 ===============================
 
-    Copyright (c) 2012, Paolo Gatti, all rights reserved.
+    Copyright (c) 2013, Paolo Gatti, all rights reserved.
     https://github.com/lordkrandel/js_test
 
     Redistribution and use in source and binary forms, with or without
