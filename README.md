@@ -1,7 +1,7 @@
 lordkrandel/js_test
 =======================
 
-A **Powerbuilder -> Javascript** interface. (through OLE )  
+A **Powerbuilder -> Javascript** interface.  
 
 Gives free access to JScript.  
 Comes with batteries included:
@@ -14,19 +14,21 @@ Comes with batteries included:
 
 License: Modified 3-clauses BSD
 ===============================
+
     Copyright (c) 2012, Paolo Gatti, all rights reserved.
-    https://github.com/lordkrandel/ahk_library
+    https://github.com/lordkrandel/js_test
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
+
     * Redistributions of source code must retain the above copyright notice,
-    this list of conditions and the following disclaimer. * Redistributions in
-    binary form must reproduce the above copyright notice, this list of
-    conditions and the following disclaimer in the documentation and/or other
-    materials provided with the distribution. * Neither the name of the
-    organization nor the names of its contributors may be used to endorse or
-    promote products derived from this software without specific prior written
-    permission.
+      this list of conditions and the following disclaimer. 
+    * Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution. 
+    * Neither the name of the organization nor the names of its contributors
+      may be used to endorse or promote products derived from this software
+      without specific prior written permission.
 
     THIS SOFTWARE IS PROVIDED BY Paolo Gatti ``AS IS'' AND ANY EXPRESS OR
     IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
