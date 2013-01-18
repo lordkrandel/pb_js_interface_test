@@ -1,7 +1,10 @@
-/**
-sprintf() for JavaScript 0.7-beta1
-http://www.diveintojavascript.com/projects/javascript-sprintf
+/*
+sprintf v1.00
+Copyright (c) Paolo Gatti < paolo_._gatti84_@_gmail_._com >
+http://github.com/lordkrandel/
 
+Original License:
+http://www.diveintojavascript.com/projects/javascript-sprintf
 Copyright (c) Alexandru Marasteanu <alexaholic [at) gmail (dot] com>
 All rights reserved.
 
@@ -19,162 +22,199 @@ modification, are permitted provided that the following conditions are met:
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL Alexandru Marasteanu BE LIABLE FOR ANY
+DISCLAIMED. IN NO EVENT SHALL Alexandru Marasteanu or Paolo Gatti BE LIABLE FOR ANY
 DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+var sprintf = function() {
 
+    // retrieve the type string
+    this.getType = function(variable) {
+        return Object.prototype.toString.call(variable).slice(8, -1).toLowerCase();
+    }
 
-Changelog:
-2010.09.06 - 0.7-beta1
-  - features: vsprintf, support for named placeholders
-  - enhancements: format cache, reduced global namespace pollution
+    // checks the actual datatype against the expected one
+    this.checkType = function(token, arg, regex, expectedType){
+        var actualType = getType(arg);
+        if ( regex.test(token) && actualType != expectedType && ( actualType != 'object' || ! arg instanceof expectedType )){
+            throw( sprintf( 'wrong token type, expecting %s but found %s on token "%s"', token, expectedType, actualType));
+        }
+    };
 
-2010.05.22 - 0.6:
- - reverted to 0.4 and fixed the bug regarding the sign of the number 0
- Note:
- Thanks to Raphael Pigulla <raph (at] n3rd [dot) org> (http://www.n3rd.org/)
- who warned me about a bug in 0.5, I discovered that the last update was
- a regress. I appologize for that.
+    this.format = function(stack, argv) {
+        var cursor = 1;
+        var arg;
+        var ret = [];
+        var argType = { "positional": 0, "named": 0 };
 
-2010.05.09 - 0.5:
- - bug fix: 0 is now preceeded with a + sign
- - bug fix: the sign was not at the right position on padded results (Kamal Abdali)
- - switched from GPL to BSD license
+        for (var currentToken in stack) {
 
-2007.10.21 - 0.4:
- - unit test and patch (David Baird)
+            // iterate over the stack
+            var token = stack[currentToken];
+            var type = getType(token);
 
-2007.09.17 - 0.3:
- - bug fix: no longer throws exception on empty paramenters (Hans Pufal)
+            if ( type === 'string') {
 
-2007.09.11 - 0.2:
- - feature: added argument swapping
+                // no further processing
+                ret.push(token);
 
-2007.04.03 - 0.1:
- - initial release
-**/
+            } else if (type === 'array' ){
 
-var sprintf = (function() {
-    String.prototype.zf = function(l) { return '0'.string(l - this.length) + this; };
-	function get_type(variable) {
-		return Object.prototype.toString.call(variable).slice(8, -1).toLowerCase();
-	}
-	function str_repeat(input, multiplier) {
-		for (var output = []; multiplier > 0; output[--multiplier] = input) {/* do nothing */}
-		return output.join('');
-	}
+                // map to object m
+                m = token.toObject([ 'positional', 'keyword', 'plus', 'padchar', 'leftAlign', 'width', 'precision', 'token', 'dateFormat' ]);
 
-	var str_format = function() {
-		if (!str_format.cache.hasOwnProperty(arguments[0])) {
-			str_format.cache[arguments[0]] = str_format.parse(arguments[0]);
-		}
-		return str_format.format.call(null, str_format.cache[arguments[0]], arguments);
-	};
+                // setup padchar
+                m.padchar = ( m.padchar || ' ' ).charAt(0);
 
-	str_format.format = function(parse_tree, argv) {
-		var cursor = 1, tree_length = parse_tree.length, node_type = '', arg, output = [], i, k, match, pad, pad_character, pad_length;
-		for (i = 0; i < tree_length; i++) {
-			node_type = get_type(parse_tree[i]);
-			if (node_type === 'string') {
-				output.push(parse_tree[i]);
-			}
-			else if (node_type === 'array') {
-				match = parse_tree[i]; // convenience purposes only
-				if (match[2]) { // keyword argument
-					arg = argv[cursor];
-					for (k = 0; k < match[2].length; k++) {
-						if (!arg.hasOwnProperty(match[2][k])) {
-							throw(sprintf('[sprintf] property "%s" does not exist', match[2][k]));
-						}
-						arg = arg[match[2][k]];
-					}
-				}
-				else if (match[1]) { // positional argument (explicit)
-					arg = argv[match[1]];
-				}
-				else { // positional argument (implicit)
-					arg = argv[cursor++];
-				}
+                // cannot mix positional and named tokens
+                argType.positional += m["positional"] ? 1 : 0
+                argType.named      += m["named"]      ? 1 : 0
+                if (argType.positional && argType.named){
+                    throw("Cannot mix positional and named tokens.");
+                }
 
-				if (/[^s]/.test(match[8]) && (get_type(arg) != 'number')) {
-					throw(sprintf('[sprintf] expecting number but found %s', get_type(arg)));
-				}
-				switch (match[8]) {
-					case 'b': arg = arg.toString(2); break;
-					case 'c': arg = String.fromCharCode(arg); break;
-					case 'd': arg = parseInt(arg, 10); break;
-					case 'e': arg = match[7] ? arg.toExponential(match[7]) : arg.toExponential(); break;
-					case 'f': arg = match[7] ? parseFloat(arg).toFixed(match[7]) : parseFloat(arg); break;
-					case 'o': arg = arg.toString(8); break;
-					case 's': arg = ((arg = String(arg)) && match[7] ? arg.substring(0, match[7]) : arg); break;
-					case 'u': arg = Math.abs(arg); break;
-					case 'x': arg = arg.toString(16); break;
-					case 'X': arg = arg.toString(16).toUpperCase(); break;
-				}
-				arg = (/[def]/.test(match[8]) && match[3] && arg >= 0 ? '+'+ arg : arg);
-				pad_character = match[4] ? match[4] == '0' ? '0' : match[4].charAt(1) : ' ';
-				pad_length = match[6] - String(arg).length;
-				pad = match[6] ? str_repeat(pad_character, pad_length) : '';
-				output.push(match[5] ? arg + pad : pad + arg);
-			}
-		}
-		return output.join('');
-	};
+                // handle keyword, positional explicit, positional implicit
+                if ( m.keyword ) {
+                    arg = argv[cursor];
+                    for ( var k in m.keyword ) {
+                        var t = m.keyword[k];
+                        if (!arg.hasOwnProperty( t )) {
+                            throw(sprintf('property "%s" does not exist', t));
+                        }
+                        arg = arg[m.keyword[k]];
+                    }
+                } else {
+                    arg = argv[ m.positional || cursor++ ];
+                }
 
-	str_format.cache = {};
+                // arg datatype checking
+                checkType(m.token, arg, /[^sDT]/, 'number');
+                checkType(m.token, arg, /[DT]/,   Date );
 
-	str_format.parse = function(fmt) {
-		var _fmt = fmt, match = [], parse_tree = [], arg_names = 0;
-		while (_fmt) {
-			if ((match = /^[^\x25]+/.exec(_fmt)) !== null) {
-				parse_tree.push(match[0]);
-			}
-			else if ((match = /^\x25{2}/.exec(_fmt)) !== null) {
-				parse_tree.push('%');
-			}
-			else if ((match = /^\x25(?:([1-9]\d*)\$|\(([^\)]+)\))?(\+)?(0|'[^$])?(-)?(\d+)?(?:\.(\d+))?([b-fosuxX])/.exec(_fmt)) !== null) {
-				if (match[2]) {
-					arg_names |= 1;
-					var field_list = [], replacement_field = match[2], field_match = [];
-					if ((field_match = /^([a-z_][a-z_\d]*)/i.exec(replacement_field)) !== null) {
-						field_list.push(field_match[1]);
-						while ((replacement_field = replacement_field.substring(field_match[0].length)) !== '') {
-							if ((field_match = /^\.([a-z_][a-z_\d]*)/i.exec(replacement_field)) !== null) {
-								field_list.push(field_match[1]);
-							}
-							else if ((field_match = /^\[(\d+)\]/.exec(replacement_field)) !== null) {
-								field_list.push(field_match[1]);
-							}
-							else {
-								throw('[sprintf] huh?');
-							}
-						}
-					}
-					else {
-						throw('[sprintf] huh?');
-					}
-					match[2] = field_list;
-				}
-				else {
-					arg_names |= 2;
-				}
-				if (arg_names === 3) {
-					throw('[sprintf] mixing positional and named placeholders is not (yet) supported');
-				}
-				parse_tree.push(match);
-			}
-			else {
-				throw('[sprintf] huh?');
-			}
-			_fmt = _fmt.substring(match[0].length);
-		}
-		return parse_tree;
-	};
+                // setup the token as a string
+                switch ( m.token ) {
+                    case 'b': arg = arg.toString(2); break;
+                    case 'c': arg = String.fromCharCode(arg); break;
+                    case 'd': arg = parseInt(arg, 10); break;
+                    case 'e': arg = m.precision ? arg.toExponential(m.precision) : arg.toExponential(); break;
+                    case 'f': arg = m.precision ? parseFloat(arg).toFixed(m.precision) : parseFloat(arg); break;
+                    case 'D': arg = new Date(arg).fmt( m.dateFormat || 'DD/MM/YYYY' ); break;
+                    case 'T': arg = new Date(arg).fmt( m.dateFormat || 'hh:mm:ss' ); break;
+                    case 'o': arg = arg.toString(8); break;
+                    case 's': arg = String(arg); break;
+                    case 'u': arg = Math.abs(arg); break;
+                    case 'x': arg = arg.toString(16); break;
+                    case 'X': arg = arg.toString(16).toUpperCase(); break;
+                }
 
-	return str_format;
-})();
+                // to string
+                arg = String(arg);
 
+                // handle conditions
+                if ( m.plus ) { arg = (arg >= 0 ? '+' : '-') + arg; }
+                if ( m.width ){ arg = arg.toFixed(m.width, m.padchar, m.leftAlign); }
+
+                // push
+                ret.push(arg);
+
+            }
+        }
+
+        // return joined array
+        return ret.join('');
+
+    };
+
+    this.parse = function(s){
+
+        var match;
+        var ret = [];
+
+        while (s) {
+
+            if ( match = s.match(/^\\n/)) {
+                ret.push("\n");
+            } else if ( match = s.match(/^([^%]+)/))  {
+                ret.push(m[0]);
+            } else if ( match = s.match(/^%%/)) {
+                ret.push("%");
+            } else if ( match = s.match(/^%(?:(\d+\$)|(\w+\$))?(\+)?(0)?(-)?(\d+)?(\.\d+)?([bcdefoOsuxXDT])(?:\(([^)]+)\))?/) ){
+                ret.push(match);
+            } else {
+                throw("Unknown token: " + s);
+            }
+
+            s = s.substr(match[0].length);
+
+        }
+        return ret;
+    }
+
+    // Save a parsed-strings cache
+    if (! this.cache ) {
+        this.cache = {};
+    };
+    var args = Array.prototype.slice.call(arguments);
+    var ret = "";
+    var formatstring = args[0];
+
+    try {
+        if ( !cache[formatstring]){
+            // If not in cache
+            cache[formatstring] = parse(formatstring);
+        }
+        // format the parsed string
+        ret = format( cache[formatstring], args );
+    } catch(e) {
+        ret = String( "[sprintf] " + e.message );
+    }
+    return ret;
+
+};
+
+// String prototype functions
+String.prototype.fmt = function(){
+    Array.prototype.unshift.call(arguments, this);
+    return sprintf.apply(null, arguments);
+}
+
+Date.prototype.fmt = function( mask ){
+    o = {
+        'YYYY' : this.getFullYear()
+        , 'YY' : this.getFullYear()
+        , 'MM' : this.getMonth()+1
+        , 'DD' : this.getDate()
+        , 'hh' : this.getHours()
+        , 'mm' : this.getMinutes()
+        , 'ss' : this.getSeconds()
+    };
+    for ( re in o ) {
+        var val = String(o[re]).toFixed(re.length, 0);
+        mask = mask.replace( RegExp( re, 'g'), val );
+    }
+    return mask;
+};
+String.prototype.toFixed = function(n, padchar, leftAlign){
+    padchar |= ' ';
+    var len = this.length;
+    var s = this;
+    if ( n < len ){
+        s = s.substr( 0, n );
+    } else {
+        var pad = Array( n-len+1 ).join(padchar);
+        s = leftAlign ? s + pad : pad + s;
+    }
+    return s;
+};
+Array.prototype.toObject = function(labels){
+    var i = 0;
+    var obj = {};
+    while( labels[i] ) {
+        obj[labels[i]] = this[++i];
+    };
+    return obj;
+}
