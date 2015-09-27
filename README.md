@@ -1,5 +1,5 @@
-lordkrandel/js_test
-=======================
+lordkrandel/ps_js_interface_test
+================================
 
 A **Powerbuilder -> Javascript** interface.  
 
